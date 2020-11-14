@@ -8,7 +8,9 @@ import servers_analyzer
 import report_creator
 import configuration as c
 
-def collect_data():
+import SonarQube
+
+def collect_data(input_path, sonarqube):
 
     apps = json.load(open(c.APPS_PATH, 'r'))
 
@@ -22,6 +24,8 @@ def collect_data():
             androguard_androwarn_analyzer.analyze(a)
             # Analyze the servers pointed by the URLs we found in the String analysis of Androguard
             servers_analyzer.analyze(a)
+            if sonarqube:
+                SonarQube.sq_analyze(input_path)
         
     # Finally, if everything goes well, save the updated apps.json file with the new timestamps and versions
     c.save(c.APPS_PATH, apps)
@@ -46,7 +50,7 @@ def create_report(author_name, author_email, report_title):
 
 
 # We run the full analysis on the apps.json file provided as input
-def run_analysis(input_path, author_name, author_email, report_title):
+def run_analysis(input_path, author_name, author_email, report_title, sonarqube):
     
     # We don't even start if the provided path does not exist
     if os.path.exists(input_path):
@@ -55,7 +59,7 @@ def run_analysis(input_path, author_name, author_email, report_title):
         print('Error - the provided path does not exist: ' + input_path)
         exit()
 
-    collect_data()
+    collect_data(input_path, sonarqube)
     create_report(author_name, author_email, report_title)
 
 def main():
@@ -67,13 +71,14 @@ def main():
     parser.add_argument('-ae', '--author_email', help='Email address of the author of the analysis', required=False,
                         type=str)
     parser.add_argument('-rt', '--report_title', help='Title of the report to be generated', required=False, type=str)
+    parser.add_argument('-S', '--sonarqube', help='Enables Sonarqube evaluation', default=False, required=False, action='store_true')
     options = parser.parse_args()
 
     # This will allow us to trust SSL certificates from the servers we will interact with
     # (e.g., the one for downloading NLTK stop word)
     ssl._create_default_https_context = ssl._create_unverified_context
 
-    run_analysis(options.input, options.author_name, options.author_email, options.report_title)
+    run_analysis(options.input, options.author_name, options.author_email, options.report_title, options.sonarqube)
 
 
 if __name__ == "__main__":
