@@ -8,6 +8,7 @@ certifi==2020.4.5.1
 cffi==1.14.0
 chardet==3.0.4
 click==7.1.2
+codetiming==1.2.0
 colorama==0.4.3
 cryptography==2.9.2
 cycler==0.10.0
@@ -44,6 +45,7 @@ python-dateutil==2.8.1
 regex==2020.4.4
 requests==2.23.0
 requests-futures==1.0.0
+selenium==3.141.0
 six==1.14.0
 soupsieve==2.0
 tld==0.12.1
