@@ -11,7 +11,7 @@ import configuration as c
 import SonarQube
 
 def collect_data(input_path, sonarqube):
-
+    print("Sonarqube = " + str(sonarqube))
     apps = json.load(open(c.APPS_PATH, 'r'))
 
     for a in apps:
@@ -24,8 +24,8 @@ def collect_data(input_path, sonarqube):
             androguard_androwarn_analyzer.analyze(a)
             # Analyze the servers pointed by the URLs we found in the String analysis of Androguard
             servers_analyzer.analyze(a)
-            if sonarqube:
-                SonarQube.sq_analyze(input_path)
+        if sonarqube:
+            SonarQube.sq_analyze(input_path)
         
     # Finally, if everything goes well, save the updated apps.json file with the new timestamps and versions
     c.save(c.APPS_PATH, apps)

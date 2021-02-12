@@ -19,27 +19,34 @@ def sq_analyze(input_path):
         name = ".".join(file.split(".")[0:-1])
 
         if name+"dex2jar.jar" not in os.listdir(apk_path):
-            apk2jar(apk_path, file)
+            try:
+                apk2jar(apk_path, file)
+            except:
+                pass
         else:
             print("Skipped %s -> %s" % (file, name+"dex2jar.jar"))
         if name+"_2java" not in os.listdir(apk_path):
-            jar2java(apk_path, name+"dex2jar.jar", name)
+            try:
+                jar2java(apk_path, name+"dex2jar.jar", name)
+            except:
+                pass
         else:
             print("Skipped %s -> %s" % (name+"dex2jar.jar", name+"_2java"))
         if (name+"_2java") in os.listdir(apk_path):
             add_sonar_properties(apk_path, name)
-            if not exists_in_sonar(apk_path, name):
+            if not exists_in_sonar(apk_path, name) and not ".skip" in os.listdir(os.path.join(apk_path, name+"_2java")):
                 t = Timer()
                 t.start()
                 result = True
                 while result:
                     result = sonar_scan(apk_path, name)
-                f = open("thetimestheyareachanging", 'a+')
+                f = open("times", 'a+')
                 f.write("%s\t\t%d\n" % (name, t.stop()))
+                f.close()
+                f = open(os.path.join(apk_path, name+"_2java", ".skip"), "x")
                 f.close()
             else:
                 print("\n\n\nTHIS WAS ALREADY SCANNED (%s)" % name)
-
 
 def apk2jar(path, file):
     print("APK2Jar Processing: " + path+"/"+file)
@@ -47,9 +54,20 @@ def apk2jar(path, file):
 
 
 def jar2java(path, file, name):
-    print("Jar2Java Processing: " + path+"/"+file)
+    print("Jar2Java Processing: " + path+"/"+file + "\n")
     # print("jar2java %s -od %s" % (os.path.join(path, file), os.path.join(path, name+"_2java")))
-    subprocess.run("jar2java %s -od %s" % (os.path.join(path, file), os.path.join(path, name+"_2java")), shell=True)
+    delay = 12*2
+    try:
+        r = subprocess.Popen("jar2java %s -od %s" % (os.path.join(path, file), os.path.join(path, name+"_2java")), shell=True, preexec_fn=os.setsid)
+        print("Process opened")
+        while r.poll() is None and delay >= 0:
+            time.sleep(5)
+            delay -= 1
+            print("Waiting for poll or delay")
+    finally:
+        if r.poll() is None:
+            os.killpg(os.getpgid(r.pid), signal.SIGTERM)
+            r.wait()
 
 
 def add_sonar_properties(path, name):
@@ -60,6 +78,7 @@ def add_sonar_properties(path, name):
 
 
 def sonar_scan(apk_path, name):
+    should_continue = True
     print("IN SONAR SCAN!!\n\n")
     # print(apk_path) ../data/data_nl_custom/apks
     # print(name) # org.who.infoapp___2.1.1
@@ -80,11 +99,22 @@ def sonar_scan(apk_path, name):
                 if lines[0] == lines[1] and lines[1] == lines[2]:
                     print("Lines are the same!")
                     print(lines[0])
-                    blocking_file = lines[0].partition("current file: ")
-                    print("\n\n\n\n\n -----------------\nBLOCKING FILE FOUND!!! + "+blocking_file+"\n--------\n\n\n\n\n\n")
+                    if len(lines[2].partition("current file: ")) == 3:
+                        blocking_file = lines[0].partition("current file: ")[2]
+                    else:
+                        print("\n False alarm on blocking file! \n")
+                        continue
+                    print("\n\n\n\n\n-----------------\nBLOCKING FILE FOUND!!! + "+str(blocking_file)+"\n--------\n\n\n\n\n\n")
+                    print("BLOCKING FILE: " + str(blocking_file)+ " " + str(type(blocking_file)))
                     with open(os.path.join(apk_path, name+"_2java", ".gitignore"), 'a+') as gitignore:
                         gitignore.write(blocking_file + "\n")
-                        return True
+                        if str(blocking_file) == "":
+                            print("Blocking file == \"\"")
+                            should_continue = False
+                            return
+                        else:
+                            print("Returning true due to blocking file...")
+                            return True
                 else:
                     print("Last lines are not the same!")
                     if re.match("INFO: [0-9]+/[0-9]+.*", lines[2]):
@@ -101,6 +131,8 @@ def sonar_scan(apk_path, name):
             print("Killing")
             os.killpg(os.getpgid(p.pid), signal.SIGTERM)
             p.wait()
+            if not should_continue:
+                return False
             return True
         else:
             print("Process was already finished")
@@ -118,6 +150,7 @@ from selenium.webdriver.common.by import By
 
 
 def exists_in_sonar(apk_path, name):
+    return False
     options = Options()
     #    options.headless = True
     driver = webdriver.Firefox(options=options)
