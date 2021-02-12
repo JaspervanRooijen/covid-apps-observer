@@ -24,6 +24,7 @@ def collect_data(input_path, sonarqube):
             androguard_androwarn_analyzer.analyze(a)
             # Analyze the servers pointed by the URLs we found in the String analysis of Androguard
             servers_analyzer.analyze(a)
+        # Sonarqube analysis can be passed as -S flag when invoking the program
         if sonarqube:
             SonarQube.sq_analyze(input_path)
         
