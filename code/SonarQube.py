@@ -80,7 +80,7 @@ def sonar_scan(apk_path, name):
                 if lines[0] == lines[1] and lines[1] == lines[2]:
                     print("Lines are the same!")
                     print(lines[0])
-                    blocking_file = lines[0].partition("current file: ")[2]
+                    blocking_file = lines[0].partition("current file: ")
                     print("\n\n\n\n\n -----------------\nBLOCKING FILE FOUND!!! + "+blocking_file+"\n--------\n\n\n\n\n\n")
                     with open(os.path.join(apk_path, name+"_2java", ".gitignore"), 'a+') as gitignore:
                         gitignore.write(blocking_file + "\n")
